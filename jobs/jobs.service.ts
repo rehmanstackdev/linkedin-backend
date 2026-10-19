@@ -9,7 +9,7 @@ import { existsSync, mkdirSync } from "fs";
 import { join } from "path";
 import { readFile, utils, write, writeFile } from "xlsx";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { IsNull, Repository, type FindOptionsWhere } from "typeorm";
 
 import { JobMatch } from "../entities/job-match.entity";
 import { JobPreference } from "../entities/job-preference.entity";
@@ -112,13 +112,21 @@ export class JobsService {
 
     const allowed = savedLocations(preference);
     const scrapedJobs = (await this.fetchFromApify(preference)).filter(job => matchesSavedLocation(job.location, allowed));
-    const savedJobs = await Promise.all(
-      scrapedJobs.map(async (job) => {
-        const identity = job.externalId ? { externalId: job.externalId } : job.url ? { url: job.url } : null;
-        const existing = identity ? await this.jobsRepository.findOne({ where: { user: { id: userId }, ...identity } }) : null;
-        return this.jobsRepository.save({ ...(existing ?? {}), ...job, user });
-      }),
-    );
+    const savedJobs: Job[] = [];
+    // Sequential inserts also catch duplicates within this search. The database
+    // search-window claim above prevents overlapping searches for the same user.
+    for (const job of scrapedJobs) {
+      const identities: FindOptionsWhere<Job>[] = [];
+      if (job.externalId) identities.push({ user: { id: userId }, externalId: job.externalId });
+      if (job.url) identities.push({ user: { id: userId }, url: job.url });
+      if (!identities.length) identities.push({
+        user: { id: userId }, externalId: IsNull(), url: IsNull(),
+        title: job.title, company: job.company || IsNull(), location: job.location || IsNull(), source: job.source,
+      });
+      const existing = await this.jobsRepository.findOne({ where: identities });
+      if (existing) continue;
+      savedJobs.push(await this.jobsRepository.save({ ...job, user }));
+    }
     const matches = await Promise.all(
       savedJobs
         .map((job) => this.scoreJob(user, preference, job))
