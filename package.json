@@ -5,9 +5,13 @@
   "scripts": {
     "dev": "tsx watch main.ts",
     "start:dev": "npm run dev",
-    "start": "tsx main.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
     "typeorm": "tsx ./node_modules/typeorm/cli.js"
+  },
+  "engines": {
+    "node": ">=22"
   },
   "dependencies": {
     "@nestjs/common": "^12.1.2",
