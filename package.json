@@ -3,11 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "tsx watch main.ts",
-    "start:dev": "npm run dev",
-    "start": "tsx main.ts",
+    "dev": "node init && tsx watch main.ts",
+    "start:dev": "node init && npm run dev",
+    "build": "node init && tsc -p tsconfig.build.json",
+    "start": "node init && node dist/main.js",
     "typecheck": "tsc --noEmit",
     "typeorm": "tsx ./node_modules/typeorm/cli.js"
+  },
+  "engines": {
+    "node": ">=22"
   },
   "dependencies": {
     "@nestjs/common": "^12.1.2",
@@ -22,9 +26,11 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "cloudinary": "^2.11.0",
+    "dotenv": "^8.2.0",
     "jsonwebtoken": "^9.0.3",
     "mammoth": "^1.13.0",
     "multer": "^2.4.0",
+    "node-fetch": "^3.3.2",
     "pdf-parse": "^2.4.5",
     "pg": "^8.23.1",
     "reflect-metadata": "^0.2.2",
